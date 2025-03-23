@@ -322,7 +322,31 @@ paths:
       summary: Generate a PDF report of products
       tags:
       - Products
-  /api/products/stats:
+  /api/statistics/products-per-category:
+    get:
+      consumes:
+      - application/json
+      description: Returns product counts per category
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get product category distribution statistics
+      tags:
+      - Products
+  /api/statistics/products-per-supplier:
     get:
       consumes:
       - application/json

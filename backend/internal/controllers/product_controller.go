@@ -47,36 +47,6 @@ func (c *ProductController) CreateProduct(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Product added successfully", "product_reference": product.ProductReference})
 }
 
-// GetPaginatedProducts godoc
-// @Summary Retrieve paginated products
-// @Description Retrieves products in batches using pagination
-// @Tags Products
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param page query int false "Page number (default: 1)"
-// @Param size query int false "Number of items per page (default: 10)"
-// @Success 200 {array} models.Product
-// @Failure 400 {object} map[string]string
-// @Router /api/products [get]
-func (c *ProductController) GetPaginatedProducts(ctx *gin.Context) {
-	// Get query parameters
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	size, _ := strconv.Atoi(ctx.DefaultQuery("size", "10"))
-
-	// Calculate offset
-	offset := (page - 1) * size
-
-	// Fetch paginated products
-	products, err := c.Service.GetPaginatedProducts(size, offset)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve products"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, products)
-}
-
 // GetProductByReference godoc
 // @Summary Get product by reference
 // @Description Retrieves a product by its reference
@@ -352,7 +322,7 @@ func GetDistanceAPI(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]string
-// @Router /api/products/stats [get]
+// @Router /api/statistics/products-per-category [get]
 func (c *ProductController) GetProductCategoryStatistics(ctx *gin.Context) {
 	stats, err := c.Service.GetProductCategoryStatistics()
 	if err != nil {
@@ -372,7 +342,7 @@ func (c *ProductController) GetProductCategoryStatistics(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]string
-// @Router /api/products/stats [get]
+// @Router /api/statistics/products-per-supplier [get]
 func (c *ProductController) GetProductSupplierStatistics(ctx *gin.Context) {
 	stats, err := c.Service.GetProductSupplierStatistics()
 	if err != nil {

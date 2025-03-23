@@ -4,7 +4,10 @@ import (
 	"ecommerce-test/config"
 	"ecommerce-test/internal/models"
 	"ecommerce-test/internal/services"
+	"encoding/json"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,18 +22,32 @@ type AuthController struct {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param user body models.RegisterRequest true "User data"
+// @Param user body models.RegisterUserRequest true "User data"
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /register [post]
 func (c *AuthController) Register(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+	var req models.RegisterUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+
+	}
+	validate := validator.New()
+	if err := validate.Struct(req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := c.AuthService.RegisterUser(user)
+	var user models.User
+	data, err := json.Marshal(user)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	json.Unmarshal(data, &user)
+
+	err = c.AuthService.RegisterUser(user)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

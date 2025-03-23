@@ -12,7 +12,7 @@ type ProductService struct {
 
 func (s *ProductService) CreateProduct(product models.Product) (models.Product, error) {
 	// Check if product already exists
-	existingProduct, _ := s.Repo.GetProductByReference(product.ProductReference)
+	existingProduct, _ := s.Repo.GetProductByName(product.ProductName)
 	if existingProduct != nil {
 		return models.Product{}, errors.New("product with reference already exists")
 	}

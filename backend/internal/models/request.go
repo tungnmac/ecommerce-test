@@ -1,5 +1,7 @@
 package models
 
+import "github.com/go-playground/validator/v10"
+
 type RegisterRequest struct {
 	Usermame string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
@@ -14,4 +16,35 @@ type LoginRequest struct {
 // DeleteMultipleProductsRequest represents the request body for deleting multiple products
 type DeleteMultipleProductsRequest struct {
 	IDs []int `json:"ids"`
+}
+
+// RegisterUserRequest represents the user registration request
+type RegisterUserRequest struct {
+	Username string `json:"username" validate:"required,min=3,max=20,alphanum"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=32,password"`
+}
+
+// Custom validation function for strong password
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
+	validate.RegisterValidation("password", func(fl validator.FieldLevel) bool {
+		password := fl.Field().String()
+		// Require at least one uppercase, one lowercase, one number, and one special character
+		regex := `^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$`
+		return validator.New().Var(password, "regexp="+regex) == nil
+	})
+}
+
+// CreateProductRequest represents the request for creating a product
+type CreateProductRequest struct {
+	ProductName     string  `json:"product_name" validate:"required,min=3,max=100"`
+	Status          string  `json:"status" validate:"required,oneof=active inactive"`
+	ProductCategory string  `json:"product_category" validate:"required"`
+	Price           float64 `json:"price" validate:"required,gt=0"`
+	StockLocation   string  `json:"stock_location" validate:"required"`
+	Supplier        string  `json:"supplier" validate:"required"`
+	Quantity        int     `json:"quantity" validate:"required,min=1"`
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"ecommerce-test/internal/models"
 	"ecommerce-test/internal/services"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/umahmood/haversine"
@@ -27,18 +29,33 @@ type ProductController struct {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param product body models.ParamProduct true "Product data (product_reference is auto-generated)"
+// @Param product body models.CreateProductRequest true "Product data (product_reference is auto-generated)"
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /api/products [post]
 func (c *ProductController) CreateProduct(ctx *gin.Context) {
-	var product models.Product
-	if err := ctx.ShouldBindJSON(&product); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	var req models.CreateProductRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	product, err := c.Service.CreateProduct(product)
+	validate := validator.New()
+	if err := validate.Struct(req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var paramProduct models.Product
+	data, err := json.Marshal(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	json.Unmarshal(data, &paramProduct)
+
+	product, err := c.Service.CreateProduct(paramProduct)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add product"})
 		return

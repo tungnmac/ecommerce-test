@@ -96,6 +96,28 @@ func (r *ProductRepository) GetProductByReference(productReference string) (*mod
 	return &product, nil
 }
 
+// GetProductByName retrieves a single product by product_name
+func (r *ProductRepository) GetProductByName(productName string) (*models.Product, error) {
+	var product models.Product
+
+	query := `
+		SELECT product_reference, product_name, created_at, status, product_category, price, 
+		       stock_location, supplier, quantity 
+		FROM test_products WHERE product_name = $1
+	`
+
+	row := config.DB.QueryRow(context.Background(), query, productName)
+	err := row.Scan(
+		&product.ProductReference, &product.ProductName, &product.CreatedAt, &product.Status,
+		&product.ProductCategory, &product.Price, &product.StockLocation, &product.Supplier, &product.Quantity,
+	)
+	if err != nil {
+		return nil, errors.New("product not found")
+	}
+
+	return &product, nil
+}
+
 // UpdateProduct updates an existing product based on `product_reference`
 func (r *ProductRepository) UpdateProduct(product models.Product) error {
 	_, err := config.DB.Exec(context.Background(),

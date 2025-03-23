@@ -1,0 +1,470 @@
+basePath: /
+definitions:
+  models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.Product:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      price:
+        type: number
+      product_category:
+        type: string
+      product_name:
+        type: string
+      product_reference:
+        type: string
+      quantity:
+        type: integer
+      status:
+        type: string
+      stock_location:
+        type: string
+      supplier:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      password:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API documentation for the Golang Ecommerce Test
+  title: Golang Ecommerce Test API
+  version: "1.0"
+paths:
+  /api/distance:
+    get:
+      consumes:
+      - application/json
+      description: Returns the distance in km between user's IP location and product's
+        city
+      parameters:
+      - description: City where product was produced
+        in: query
+        name: product_city
+        required: true
+        type: string
+      - description: User's IP address (optional, auto-detect)
+        in: query
+        name: ip
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Calculate distance between user and product location
+      tags:
+      - Distance
+  /api/health:
+    get:
+      consumes:
+      - application/json
+      description: Checks if the API and database are running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: API Health Check
+      tags:
+      - Health
+  /api/products:
+    get:
+      consumes:
+      - application/json
+      description: Dynamic filtering and search for products, including multiple statuses
+        and categories
+      parameters:
+      - description: Filter by product_reference
+        in: query
+        name: product_reference
+        type: string
+      - description: Search by product name
+        in: query
+        name: product_name
+        type: string
+      - description: Filter by status (comma-separated values)
+        in: query
+        name: status
+        type: string
+      - description: Filter by category (comma-separated values)
+        in: query
+        name: product_category
+        type: string
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Filter by stock location
+        in: query
+        name: stock_location
+        type: string
+      - description: Filter by supplier
+        in: query
+        name: supplier
+        type: string
+      - default: 10
+        description: Number of results per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retrieve filtered products
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product with auto-generated product_reference
+      parameters:
+      - description: Product data (product_reference is auto-generated)
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/models.Product'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a new product
+      tags:
+      - Products
+  /api/products/{product_reference}:
+    put:
+      consumes:
+      - application/json
+      description: Updates product details based on product_reference
+      parameters:
+      - description: Product Reference
+        in: path
+        name: product_reference
+        required: true
+        type: string
+      - description: Updated Product Data
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/models.Product'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an existing product
+      tags:
+      - Products
+  /api/products/{reference}:
+    get:
+      description: Retrieves a product by its reference
+      parameters:
+      - description: Product Reference
+        in: path
+        name: reference
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Product'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get product by reference
+      tags:
+      - Products
+  /api/products/pdf:
+    get:
+      consumes:
+      - application/json
+      description: Generates a formatted PDF file containing product details
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate a PDF report of products
+      tags:
+      - Products
+  /api/products/stats:
+    get:
+      consumes:
+      - application/json
+      description: Returns product counts per supplier
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get product supplier distribution statistics
+      tags:
+      - Products
+  /api/users:
+    get:
+      description: Returns a list of users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - Users
+  /api/users/{id}:
+    get:
+      description: Fetches a single user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Users
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token
+      parameters:
+      - description: User credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Auth user login
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

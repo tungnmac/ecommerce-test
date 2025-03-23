@@ -64,6 +64,10 @@ func SetupRouter(db *pgx.Conn) *gin.Engine {
 		// Product supplier statistics route
 		protected.GET("/statistics/products-per-supplier", productController.GetProductSupplierStatistics)
 
+		protected.DELETE("/:id", productController.DeleteProduct)
+		protected.DELETE("/reference/:reference", productController.DeleteProductByReference)
+		protected.DELETE("/bulk", productController.DeleteMultipleProducts)
+
 	}
 
 	// Health check

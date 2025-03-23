@@ -6,6 +6,7 @@ import (
 	"ecommerce-test/internal/models"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -13,16 +14,17 @@ import (
 type ProductRepository struct{}
 
 // InsertProduct inserts a new product with an auto-generated product_reference
-func (r *ProductRepository) InsertProduct(product models.Product) error {
+func (r *ProductRepository) InsertProduct(product models.Product) (models.Product, error) {
 	currentTime := time.Now()
 	yearMonth := currentTime.Format("200601") // Format: YYYYMM
 
 	// Get last product reference for the current month
 	var lastProductRef string
 	err := config.DB.QueryRow(context.Background(),
-		"SELECT product_reference FROM products WHERE product_reference LIKE $1 ORDER BY product_reference DESC LIMIT 1",
+		"SELECT product_reference FROM test_products WHERE product_reference LIKE $1 ORDER BY product_reference DESC LIMIT 1",
 		fmt.Sprintf("PROD-%s-%%", yearMonth)).Scan(&lastProductRef)
 
+	log.Println(lastProductRef)
 	// Extract sequence number
 	var newSeq int
 	if err != nil {
@@ -34,22 +36,24 @@ func (r *ProductRepository) InsertProduct(product models.Product) error {
 		newSeq++
 	}
 
+	log.Println(fmt.Sprintf("PROD-%s-%03d", yearMonth, newSeq))
+
 	// Generate new product reference
 	product.ProductReference = fmt.Sprintf("PROD-%s-%03d", yearMonth, newSeq)
 	product.CreatedAt = models.Date(currentTime)
 
 	// Insert new product
-	_, err = config.DB.Exec(context.Background(),
-		"INSERT INTO products (product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-		product.ProductReference, product.ProductName, product.CreatedAt, product.Status, product.ProductCategory, product.Price, product.StockLocation, product.Supplier, product.Quantity)
+	// _, err = config.DB.Exec(context.Background(),
+	// 	"INSERT INTO test_products (product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+	// 	product.ProductReference, product.ProductName, product.CreatedAt, product.Status, product.ProductCategory, product.Price, product.StockLocation, product.Supplier, product.Quantity)
 
-	return err
+	return product, err
 }
 
 // GetProducts retrieves products with pagination
 func (r *ProductRepository) GetProducts(limit, offset int) ([]models.Product, error) {
 	rows, err := config.DB.Query(context.Background(),
-		"SELECT id, product_reference, product_name, created_at, status, product_category, price, stock_location FROM products ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+		"SELECT id, product_reference, product_name, created_at, status, product_category, price, stock_location FROM test_products ORDER BY created_at DESC LIMIT $1 OFFSET $2",
 		limit, offset)
 	if err != nil {
 		return nil, err
@@ -77,7 +81,7 @@ func (r *ProductRepository) GetProductByReference(productReference string) (*mod
 	query := `
 		SELECT product_reference, product_name, created_at, status, product_category, price, 
 		       stock_location, supplier, quantity 
-		FROM products WHERE product_reference = $1
+		FROM test_products WHERE product_reference = $1
 	`
 
 	row := config.DB.QueryRow(context.Background(), query, productReference)
@@ -95,7 +99,7 @@ func (r *ProductRepository) GetProductByReference(productReference string) (*mod
 // UpdateProduct updates an existing product based on `product_reference`
 func (r *ProductRepository) UpdateProduct(product models.Product) error {
 	_, err := config.DB.Exec(context.Background(),
-		`UPDATE products 
+		`UPDATE test_products 
 		SET product_name = $1, status = $3, product_category = $4, price = $5, 
 		    stock_location = $6, supplier = $7, quantity = $8
 		WHERE product_reference = $9`,
@@ -143,7 +147,7 @@ func (r *ProductRepository) GetFilteredProducts(filters map[string][]string, lim
 	}
 
 	// Build the query dynamically
-	query := "SELECT product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity FROM products"
+	query := "SELECT id, product_reference, product_name, created_at, updated_at, status, product_category, price, stock_location, supplier, quantity FROM test_products"
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
@@ -159,13 +163,17 @@ func (r *ProductRepository) GetFilteredProducts(filters map[string][]string, lim
 
 	for rows.Next() {
 		var product models.Product
+		var createdAt time.Time
+		var updatedAt time.Time
 		err := rows.Scan(
-			&product.ProductReference, &product.ProductName, &product.CreatedAt, &product.Status,
+			&product.ID, &product.ProductReference, &product.ProductName, &createdAt, &updatedAt, &product.Status,
 			&product.ProductCategory, &product.Price, &product.StockLocation, &product.Supplier, &product.Quantity,
 		)
 		if err != nil {
 			return nil, err
 		}
+		product.CreatedAt = models.Date(createdAt)
+		product.UpdatedAt = models.Date(updatedAt)
 		products = append(products, product)
 	}
 
@@ -186,7 +194,7 @@ type ProductSupplierStats struct {
 
 // GetProductCategoryStats retrieves the count of products per category
 func (r *ProductRepository) GetProductCategoryStats() ([]ProductCategoryStats, error) {
-	query := "SELECT product_category, COUNT(*) FROM products GROUP BY product_category"
+	query := "SELECT product_category, COUNT(*) FROM test_products GROUP BY product_category"
 	rows, err := config.DB.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
@@ -207,7 +215,7 @@ func (r *ProductRepository) GetProductCategoryStats() ([]ProductCategoryStats, e
 
 // GetProductSupplierStats retrieves the count of products per supplier
 func (r *ProductRepository) GetProductSupplierStats() ([]ProductSupplierStats, error) {
-	query := "SELECT supplier, COUNT(*) FROM products GROUP BY supplier"
+	query := "SELECT supplier, COUNT(*) FROM test_products GROUP BY supplier"
 	rows, err := config.DB.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
@@ -224,4 +232,34 @@ func (r *ProductRepository) GetProductSupplierStats() ([]ProductSupplierStats, e
 	}
 
 	return stats, nil
+}
+
+// DeleteProductByID deletes a product by ID
+func (r *ProductRepository) DeleteProductByID(id int) error {
+	_, err := config.DB.Exec(context.Background(),
+		`DELETE FROM test_products
+		WHERE id = $1`,
+		id)
+
+	return err
+}
+
+// DeleteProductByReference deletes a product by product_reference
+func (r *ProductRepository) DeleteProductByReference(reference string) error {
+	_, err := config.DB.Exec(context.Background(),
+		`DELETE FROM test_products
+		WHERE product_reference = $1`,
+		reference)
+
+	return err
+}
+
+// DeleteMultipleProducts deletes multiple products by ID
+func (r *ProductRepository) DeleteMultipleProducts(ids []int) error {
+	_, err := config.DB.Exec(context.Background(),
+		`DELETE FROM test_products
+		WHERE id IN $1`,
+		ids)
+
+	return err
 }

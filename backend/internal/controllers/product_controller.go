@@ -27,7 +27,7 @@ type ProductController struct {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param product body models.Product true "Product data (product_reference is auto-generated)"
+// @Param product body models.ParamProduct true "Product data (product_reference is auto-generated)"
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Router /api/products [post]
@@ -38,7 +38,7 @@ func (c *ProductController) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
-	err := c.Service.CreateProduct(product)
+	product, err := c.Service.CreateProduct(product)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add product"})
 		return
@@ -76,7 +76,7 @@ func (c *ProductController) GetProductByReference(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param product_reference path string true "Product Reference"
-// @Param product body models.Product true "Updated Product Data"
+// @Param product body models.ParamProduct true "Updated Product Data"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -227,6 +227,8 @@ func (c *ProductController) GenerateProductPDF(ctx *gin.Context) {
 	// Save PDF
 	filePath := "reports/product_report.pdf"
 	err = pdf.OutputFileAndClose(filePath)
+	log.Println(err)
+
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
 		return
@@ -351,4 +353,83 @@ func (c *ProductController) GetProductSupplierStatistics(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, stats)
+}
+
+// DeleteProduct godoc
+// @Summary Delete a single product by ID
+// @Description Remove a product from the database using its ID
+// @Tags Products
+// @Security BearerAuth
+// @Param id path int true "Product ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/products/{id} [delete]
+func (c *ProductController) DeleteProduct(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		return
+	}
+
+	if err := c.Service.DeleteProductByID(int(id)); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete product"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+}
+
+// DeleteProductByReference godoc
+// @Summary Delete a product by reference
+// @Description Remove a product from the database using its product reference
+// @Tags Products
+// @Security BearerAuth
+// @Param reference path string true "Product Reference"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/products/reference/{reference} [delete]
+func (c *ProductController) DeleteProductByReference(ctx *gin.Context) {
+	reference := ctx.Param("reference")
+
+	if err := c.Service.DeleteProductByReference(reference); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete product"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+}
+
+// DeleteMultipleProducts godoc
+// @Summary Delete multiple products
+// @Description Remove multiple products by providing a list of IDs
+// @Tags Products
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body models.DeleteMultipleProductsRequest true "List of Product IDs"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /api/products/bulk [delete]
+func (c *ProductController) DeleteMultipleProducts(ctx *gin.Context) {
+	var request models.DeleteMultipleProductsRequest
+
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if len(request.IDs) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "No product IDs provided"})
+		return
+	}
+
+	if err := c.Service.DeleteMultipleProducts(request.IDs); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete products"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Products deleted successfully"})
 }

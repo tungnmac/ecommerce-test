@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  models.DeleteMultipleProductsRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    type: object
   models.LoginRequest:
     properties:
       email:
@@ -9,6 +16,23 @@ definitions:
     required:
     - email
     - password
+    type: object
+  models.ParamProduct:
+    properties:
+      price:
+        type: number
+      product_category:
+        type: string
+      product_name:
+        type: string
+      quantity:
+        type: integer
+      status:
+        type: string
+      stock_location:
+        type: string
+      supplier:
+        type: string
     type: object
   models.Product:
     properties:
@@ -208,7 +232,7 @@ paths:
         name: product
         required: true
         schema:
-          $ref: '#/definitions/models.Product'
+          $ref: '#/definitions/models.ParamProduct'
       produces:
       - application/json
       responses:
@@ -229,6 +253,39 @@ paths:
       summary: Add a new product
       tags:
       - Products
+  /api/products/{id}:
+    delete:
+      description: Remove a product from the database using its ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a single product by ID
+      tags:
+      - Products
   /api/products/{product_reference}:
     put:
       consumes:
@@ -245,7 +302,7 @@ paths:
         name: product
         required: true
         schema:
-          $ref: '#/definitions/models.Product'
+          $ref: '#/definitions/models.ParamProduct'
       produces:
       - application/json
       responses:
@@ -299,6 +356,38 @@ paths:
       summary: Get product by reference
       tags:
       - Products
+  /api/products/bulk:
+    delete:
+      consumes:
+      - application/json
+      description: Remove multiple products by providing a list of IDs
+      parameters:
+      - description: List of Product IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.DeleteMultipleProductsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete multiple products
+      tags:
+      - Products
   /api/products/pdf:
     get:
       consumes:
@@ -320,6 +409,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Generate a PDF report of products
+      tags:
+      - Products
+  /api/products/reference/{reference}:
+    delete:
+      description: Remove a product from the database using its product reference
+      parameters:
+      - description: Product Reference
+        in: path
+        name: reference
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a product by reference
       tags:
       - Products
   /api/statistics/products-per-category:

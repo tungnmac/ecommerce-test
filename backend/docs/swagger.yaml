@@ -1,5 +1,36 @@
 basePath: /
 definitions:
+  models.CreateProductRequest:
+    properties:
+      price:
+        type: number
+      product_category:
+        type: string
+      product_name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+      status:
+        enum:
+        - active
+        - inactive
+        type: string
+      stock_location:
+        type: string
+      supplier:
+        type: string
+    required:
+    - price
+    - product_category
+    - product_name
+    - quantity
+    - status
+    - stock_location
+    - supplier
+    type: object
   models.DeleteMultipleProductsRequest:
     properties:
       ids:
@@ -232,7 +263,7 @@ paths:
         name: product
         required: true
         schema:
-          $ref: '#/definitions/models.ParamProduct'
+          $ref: '#/definitions/models.CreateProductRequest'
       produces:
       - application/json
       responses:
@@ -392,7 +423,49 @@ paths:
     get:
       consumes:
       - application/json
-      description: Generates a formatted PDF file containing product details
+      parameters:
+      - description: Filter by product_reference
+        in: query
+        name: product_reference
+        type: string
+      - description: Search by product name
+        in: query
+        name: product_name
+        type: string
+      - description: Filter by status (comma-separated values)
+        in: query
+        name: status
+        type: string
+      - description: Filter by category (comma-separated values)
+        in: query
+        name: product_category
+        type: string
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Filter by stock location
+        in: query
+        name: stock_location
+        type: string
+      - description: Filter by supplier
+        in: query
+        name: supplier
+        type: string
+      - default: 10
+        description: Number of results per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/pdf
       responses:
@@ -408,7 +481,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Generate a PDF report of products
+      summary: Generate product PDF
       tags:
       - Products
   /api/products/reference/{reference}:

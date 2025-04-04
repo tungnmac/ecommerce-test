@@ -6,7 +6,7 @@ import (
 	"ecommerce-test/internal/models"
 	"errors"
 	"fmt"
-	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -24,28 +24,32 @@ func (r *ProductRepository) InsertProduct(product models.Product) (models.Produc
 		"SELECT product_reference FROM test_products WHERE product_reference LIKE $1 ORDER BY product_reference DESC LIMIT 1",
 		fmt.Sprintf("PROD-%s-%%", yearMonth)).Scan(&lastProductRef)
 
-	log.Println(lastProductRef)
 	// Extract sequence number
-	var newSeq int
-	if err != nil {
-		// No previous product found for this month, start at 1
-		newSeq = 1
-	} else {
-		// Extract last sequence number (PROD-YYYYMM-XXX)
-		fmt.Sscanf(lastProductRef, "PROD-%s-%03d", &yearMonth, &newSeq)
-		newSeq++
+	if err != nil || lastProductRef == "" {
+		return product, nil // No records, start from 0
 	}
 
-	log.Println(fmt.Sprintf("PROD-%s-%03d", yearMonth, newSeq))
+	// Extract sequence from PROD-YYYYMM-XXX
+	parts := strings.Split(lastProductRef, "-")
+	if len(parts) != 3 {
+		return product, fmt.Errorf("invalid product_reference format: %s", lastProductRef)
+	}
+
+	seq, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return product, fmt.Errorf("invalid sequence number: %v", err)
+	}
+
+	reference := fmt.Sprintf("PROD-%s-%03d", yearMonth, seq+1)
 
 	// Generate new product reference
-	product.ProductReference = fmt.Sprintf("PROD-%s-%03d", yearMonth, newSeq)
+	product.ProductReference = reference
 	product.CreatedAt = models.Date(currentTime)
 
 	// Insert new product
-	// _, err = config.DB.Exec(context.Background(),
-	// 	"INSERT INTO test_products (product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-	// 	product.ProductReference, product.ProductName, product.CreatedAt, product.Status, product.ProductCategory, product.Price, product.StockLocation, product.Supplier, product.Quantity)
+	_, err = config.DB.Exec(context.Background(),
+		"INSERT INTO test_products (product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+		product.ProductReference, product.ProductName, product.CreatedAt, product.Status, product.ProductCategory, product.Price, product.StockLocation, product.Supplier, product.Quantity)
 
 	return product, err
 }

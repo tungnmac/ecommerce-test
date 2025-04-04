@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS test_products (
 
 -- Insert initial data (optional)
 INSERT INTO test_users (name, email, password) 
-VALUES ('admin', 'admin@example.com', 'hashedpassword')
+VALUES ('admin', 'admin@example.com', '123456')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO test_products (product_reference, product_name, created_at, status, product_category, price, stock_location, supplier, quantity) 

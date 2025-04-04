@@ -3,6 +3,7 @@ package controllers
 import (
 	"ecommerce-test/internal/models"
 	"ecommerce-test/internal/services"
+	"ecommerce-test/internal/utils"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/jung-kurt/gofpdf"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/umahmood/haversine"
 )
@@ -57,6 +57,7 @@ func (c *ProductController) CreateProduct(ctx *gin.Context) {
 
 	product, err := c.Service.CreateProduct(paramProduct)
 	if err != nil {
+		log.Println(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add product"})
 		return
 	}
@@ -187,72 +188,83 @@ func (c *ProductController) GetFilteredProducts(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, products)
 }
 
-// GenerateProductPDF godoc
-// @Summary Generate a PDF report of products
-// @Description Generates a formatted PDF file containing product details
+// GetProductPDF godoc
+// @Summary Generate product PDF
 // @Tags Products
 // @Security BearerAuth
 // @Accept json
 // @Produce application/pdf
-// @Success 200 {file} pdf
+// @Param product_reference query string false "Filter by product_reference"
+// @Param product_name query string false "Search by product name"
+// @Param status query string false "Filter by status (comma-separated values)"
+// @Param product_category query string false "Filter by category (comma-separated values)"
+// @Param min_price query number false "Minimum price"
+// @Param max_price query number false "Maximum price"
+// @Param stock_location query string false "Filter by stock location"
+// @Param supplier query string false "Filter by supplier"
+// @Param limit query int false "Number of results per page" default(10)
+// @Param offset query int false "Pagination offset" default(0)
+// @Success 200 {file} binary
 // @Failure 500 {object} map[string]string
 // @Router /api/products/pdf [get]
-func (c *ProductController) GenerateProductPDF(ctx *gin.Context) {
-	products, err := c.Service.GetFilteredProducts(nil, 100, 0) // Retrieve up to 100 products
+func (p *ProductController) GetProductPDF(ctx *gin.Context) {
+	filters := map[string][]string{}
+
+	// Extract query parameters
+	if value := ctx.Query("product_reference"); value != "" {
+		filters["product_reference"] = []string{value}
+	}
+	if value := ctx.Query("product_name"); value != "" {
+		filters["product_name"] = []string{value}
+	}
+	if value := ctx.Query("status"); value != "" {
+		filters["status"] = strings.Split(value, ",")
+	}
+	if value := ctx.Query("product_category"); value != "" {
+		filters["product_category"] = strings.Split(value, ",")
+	}
+	if value := ctx.Query("stock_location"); value != "" {
+		filters["stock_location"] = []string{value}
+	}
+	if value := ctx.Query("supplier"); value != "" {
+		filters["supplier"] = []string{value}
+	}
+	if value := ctx.Query("min_price"); value != "" {
+		filters["min_price"] = []string{value}
+	}
+	if value := ctx.Query("max_price"); value != "" {
+		filters["max_price"] = []string{value}
+	}
+
+	// Pagination
+	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+	offset, err := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Fetch data
+	products, err := p.Service.GetFilteredProducts(filters, limit, offset)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch products"})
 		return
 	}
 
-	// Create a new PDF
-	pdf := gofpdf.New("P", "mm", "A4", "")
-	pdf.SetFont("Arial", "B", 16)
-	pdf.AddPage()
-
-	// Title
-	pdf.Cell(190, 10, "Product Report")
-	pdf.Ln(12)
-
-	// Table Headers
-	pdf.SetFont("Arial", "B", 12)
-	headers := []string{"Ref", "Name", "Category", "Price", "Status", "Stock"}
-	colWidths := []float64{35, 50, 35, 20, 25, 25}
-
-	for i, header := range headers {
-		pdf.CellFormat(colWidths[i], 10, header, "1", 0, "C", false, 0, "")
-	}
-	pdf.Ln(-1)
-
-	// Table Data
-	pdf.SetFont("Arial", "", 10)
-	for _, product := range products {
-		data := []string{
-			product.ProductReference,
-			product.ProductName,
-			product.ProductCategory,
-			fmt.Sprintf("$%.2f", product.Price),
-			product.Status,
-			fmt.Sprintf("%d", product.Quantity),
-		}
-
-		for i, text := range data {
-			pdf.CellFormat(colWidths[i], 10, text, "1", 0, "C", false, 0, "")
-		}
-		pdf.Ln(-1)
-	}
-
-	// Save PDF
-	filePath := "reports/product_report.pdf"
-	err = pdf.OutputFileAndClose(filePath)
-	log.Println(err)
-
+	pdf, err := utils.GenerateProductPDF(products)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
 		return
 	}
 
-	// Return the generated PDF file
-	ctx.File(filePath)
+	ctx.Header("Content-Type", "application/pdf")
+	ctx.Header("Content-Disposition", "attachment; filename=product_report.pdf")
+	err = pdf.Output(ctx.Writer)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error streaming PDF"})
+	}
 }
 
 // Predefined product locations (For demonstration, replace with a database lookup)

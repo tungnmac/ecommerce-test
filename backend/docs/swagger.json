@@ -224,7 +224,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ParamProduct"
+                            "$ref": "#/definitions/models.CreateProductRequest"
                         }
                     }
                 ],
@@ -308,7 +308,6 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Generates a formatted PDF file containing product details",
                 "consumes": [
                     "application/json"
                 ],
@@ -318,7 +317,71 @@
                 "tags": [
                     "Products"
                 ],
-                "summary": "Generate a PDF report of products",
+                "summary": "Generate product PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by product_reference",
+                        "name": "product_reference",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by product name",
+                        "name": "product_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (comma-separated values)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category (comma-separated values)",
+                        "name": "product_category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by stock location",
+                        "name": "stock_location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by supplier",
+                        "name": "supplier",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of results per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -811,6 +874,48 @@
         }
     },
     "definitions": {
+        "models.CreateProductRequest": {
+            "type": "object",
+            "required": [
+                "price",
+                "product_category",
+                "product_name",
+                "quantity",
+                "status",
+                "stock_location",
+                "supplier"
+            ],
+            "properties": {
+                "price": {
+                    "type": "number"
+                },
+                "product_category": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ]
+                },
+                "stock_location": {
+                    "type": "string"
+                },
+                "supplier": {
+                    "type": "string"
+                }
+            }
+        },
         "models.DeleteMultipleProductsRequest": {
             "type": "object",
             "properties": {

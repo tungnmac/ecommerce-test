@@ -55,7 +55,7 @@ func SetupRouter(db *pgx.Conn) *gin.Engine {
 		protected.GET("/products/:product_reference", productController.GetProductByReference)
 		protected.PUT("/products/:product_reference", productController.UpdateProduct) // Update product
 		protected.GET("/products", productController.GetFilteredProducts)              // Dynamic filtering
-		protected.GET("/products/pdf", productController.GenerateProductPDF)           // Generate PDF
+		protected.GET("/products/pdf", productController.GetProductPDF)                // Generate PDF
 		// Distance API
 		protected.GET("/distance", controllers.GetDistanceAPI)
 

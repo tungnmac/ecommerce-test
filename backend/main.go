@@ -4,6 +4,7 @@ import (
 	"ecommerce-test/config"
 	"ecommerce-test/internal/routes"
 	"fmt"
+	"log"
 )
 
 // @title Golang Ecommerce Test API
@@ -15,6 +16,8 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	// to change the flags on the default logger
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	db := config.ConnectDB()
 	config.InitJWT()
 

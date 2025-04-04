@@ -1,7 +1,5 @@
 package models
 
-import "github.com/go-playground/validator/v10"
-
 type RegisterRequest struct {
 	Usermame string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
@@ -23,19 +21,6 @@ type RegisterUserRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=20,alphanum"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=32,password"`
-}
-
-// Custom validation function for strong password
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New()
-	validate.RegisterValidation("password", func(fl validator.FieldLevel) bool {
-		password := fl.Field().String()
-		// Require at least one uppercase, one lowercase, one number, and one special character
-		regex := `^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$`
-		return validator.New().Var(password, "regexp="+regex) == nil
-	})
 }
 
 // CreateProductRequest represents the request for creating a product
